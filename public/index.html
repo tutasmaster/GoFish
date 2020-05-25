@@ -1,0 +1,383 @@
+<html>
+    <head>
+        <title>Fish</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            .card{
+                width: 100px;
+                height: 150px;
+                margin: 10px;
+                border-radius: 10px;
+            }
+
+            .interactable:hover{
+                box-shadow: black 2px 2px 2px;
+            }
+
+            .interactable:active{
+                box-shadow: black -2px -2px 2px;
+            }
+
+            @media only screen and (max-width: 500px) {
+                .card{
+                    width:50px;
+                    height:75px;
+                    margin: 5px;
+                }
+            }
+
+            #main{
+                flex-direction: column;
+                align-items:stretch;
+                align-content: stretch;
+                flex-wrap: nowrap;
+                width: 100%;
+            }
+
+            body{
+                margin: 0;
+                background-color: #222222;
+                color: white;
+                font-family:'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+            }
+            .container{
+                display: flex;
+                flex-wrap: wrap;
+                align-items: flex-start;
+                align-content: flex-start;
+                flex-direction: row;
+            }
+            .center{
+                text-align: center;
+                align-items: center;
+                justify-content:center;
+            }
+
+            #cards{
+                background-color: #FFFFCC;
+                flex-shrink: 1;
+            }
+
+            #table{
+                background-color: #FF2211;
+            }
+
+            h1{
+                font-family:Arial, Helvetica, sans-serif;
+            }
+            
+            #players{
+                justify-content:flex-end;
+                align-self: center;
+                min-width: 181px;
+                flex-wrap: wrap;
+                margin-top: auto;
+                bottom: 0;
+            }
+            .card{
+                font-family:fantasy;
+                text-align: center;
+                width:75px;
+                height:112px;
+                margin: 5px;
+            }
+            .title{
+                background-color: #111111;
+                padding: 5px;
+                font-size: 20px;
+                margin: 0;
+                align-self:stretch;
+            }
+            #alerts{
+                background-color: #111111;
+                padding: 0;
+            }
+            #alerts > p{
+                margin: 5px;
+            }
+
+            .overlay{
+                position:fixed;
+                height:100%;
+                width:100%;
+                background-color: rgba(0.1,0.1,0.1,0.5);
+                justify-content: center;
+                align-content: center;
+                display: flex;
+            }
+
+            #login, #piles {
+                background-color: white;
+                color:black;
+                margin-top: auto;
+                margin-bottom: auto;
+                border-radius: 10px;
+                box-shadow: black 4px 4px 4px;
+                align-content: center;
+                justify-content: center;
+                flex-wrap: wrap;
+                max-width: 550px;
+            }
+
+            .button{
+                flex-grow: 1;
+                font-size: 20px;
+                text-decoration: none;
+                background-color: #88CCFF;
+                border: none;
+                margin: 2px;
+                padding: 2px;
+                border-radius: 10px;
+                margin-top: 20px;
+            }
+
+            .hide {
+                display: none;
+            }
+            
+            #login > p {
+                text-align: center;
+                flex-basis: 100%;
+                margin: 2px;
+            }
+
+            #piles > p {
+                text-align: center;
+                flex-basis: 100%;
+                margin: 2px;
+            }
+
+            .alert{
+                margin-top: auto;
+                margin-bottom: auto;
+                box-shadow: black 2px 2px 2px;
+                background-color: #222222;
+                padding: 10px;
+                border-radius: 5px;
+            }
+
+            .fill{
+                flex-basis: 100%;
+            }
+
+            .thumb{
+                width: 25px;
+                height:38px;
+                margin: 2px;
+            }
+        </style>
+        <script
+        src="https://code.jquery.com/jquery-3.4.1.min.js"
+        integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+        crossorigin="anonymous"></script>
+        <script src="/socket.io/socket.io.js"></script>
+    </head>
+    <body>
+        <div class="overlay" id="overlay">
+            <div class="container" id="login">
+                <p class="center" style="background-color: none;padding: 5px;font-size: 20px;">Most Boring Game of Go Fish                <hr style="width: 90%"></p>
+                <p>This game is simply an experiment for entertainment purposes.</p>
+                <p>Nothing in this game is guaranteed to work. Expect bugs.</p>
+                <p>You will be placed in a random match, who knows if your UID will even be correct. Don't come crying to @Tutas for advice.</p>
+                <p style="margin-top: 30px;" id="log-message">Not logged in yet.</p>
+                <button class="button" id="join" style="align-self: flex-end;" disabled onclick="hideOverlay()">PLAY</button>
+            </div>
+            <div class="container hide" id="piles">
+                <p class="center" style="background-color: none;padding: 5px;font-size: 20px;">Most Boring Game of Go Fish                <hr style="width: 90%"></p>
+                <p id="pwon">The game has ended, Player X has won!</p>
+                <div class="container center" id="finalpile">
+
+                </div>
+            </div>
+            <p class="alert hide" id="fullscreen-alert">Waiting for players!</p>
+            <p class="alert hide" id="fullscreen-disconnect">You have been disconnected: </p>
+        </div>
+        <div class="container" id="main" style="height:100%">
+            <p class="title center">Most Boring Game of Go Fish</p>
+            <div class="container center" id="table">
+                <img class="card" src="imgs/costas1.gif"/>
+                <img class="card" src="imgs/costas1.gif"/>
+                <img class="card" src="imgs/costas1.gif"/>
+                <img class="card" src="imgs/costas1.gif"/>
+                <img class="card" src="imgs/costas1.gif"/>
+            </div>
+            <div class="container center" id="cards">
+                <img class="card" src="imgs/costas1.gif"/>
+                <img class="card" src="imgs/costas1.gif"/>
+                <img class="card" src="imgs/costas1.gif"/>
+                <img class="card" src="imgs/costas1.gif"/>
+                <img class="card" src="imgs/costas1.gif"/>
+            </div>
+            <div class="container center" id="turns">
+                <p>Noone's Turn!</p>
+            </div>            
+            <div class="container center" id="alerts">
+            </div>
+            <div class="container center" id="players">
+                <p class="fill"><b>Player1</b> Pile: 0</p> <p class="fill"><b>Player2</b> Pile: 0</p>
+            </div>
+        </div>
+
+        <script>
+            let socket;
+            let debug = sessionStorage.getItem("Debug");
+            let isReady = false;
+            let logged = false;
+            let playerType = "spectator";
+            socket = io();
+            socket.emit('SendUID',sessionStorage.getItem("UID"));
+            socket.on('UID', function(uid,type){
+                console.log("User connected as UID" + uid + "!");
+                sessionStorage.setItem("UID",uid);
+                playerType = type;
+                if(debug == "true")
+                    $("#log-message").html("You are logged in with <b>UID " + uid + "</b>!");
+                else
+                    $("#log-message").html("You are logged in!");
+                $("#join").prop("disabled",false);
+            });
+            socket.on("IsReady",function(ready){
+                isReady = ready;
+                console.log(logged);
+                if(logged == true)
+                    startGame();
+            });
+            socket.on("Disconnect", function(message){
+                $("#fullscreen-disconnect").html("You have been disconnected: " + message);
+                if(logged == false){
+                    $("#login").animate({
+                    opacity: 0
+                    }, 200, function(){
+                        $("#login").addClass("hide");
+                        $("#fullscreen-disconnect").css({opacity: 0});
+                        $("#fullscreen-disconnect").removeClass("hide");
+                        $("#fullscreen-disconnect").animate({
+                            opacity: 1
+                        },200)
+                    });
+                }else{
+                    $("#login").addClass("hide");
+                    $("#fullscreen-disconnect").css({opacity: 0});
+                    $("#fullscreen-disconnect").removeClass("hide");
+                    $("#fullscreen-disconnect").animate({
+                        opacity: 1
+                    },200)
+                }
+                    
+            })
+
+            socket.on("ShowPiles", function(p1,p2){
+                let value = "<hr style='width: 90%'><p>Player1 Pile: </p><p>";
+                p1.forEach(card => {
+                    value += "<img class=\"card thumb\" src=\"imgs/" + card + ".gif\"/>"
+                });
+                value += "</p><hr style='width: 90%'><p>Player2 Pile: </p><p>";
+                p2.forEach(card => {
+                    value += "<img class=\"card thumb\" src=\"imgs/" + card + ".gif\"/>"
+                });
+                value += "</p>";
+                let v = p1.length > p2.length ? 1 : 2;
+                $("#finalpile").html(value);
+                $("#pwon").html("The game has ended, Player " + v + " has won!");
+                $("#piles").removeClass("hide");
+                $("#overlay").removeClass("hide");
+                $("#overlay").animate({
+                    opacity: 1
+                }, 200, function(){
+                    
+                });
+            })
+
+            socket.on("PileValue", function(p1,p2){
+                $("#players").html("<p class='fill'><b>Player1</b> Pile: " + p1 + "</p><p class='fill'><b>Player2</b> Pile: " + p2 + "</p>");
+            });
+
+            socket.on('GameData',function(p1,p2,p1Full){
+                let table = "";
+                let player = "";
+
+
+                if(playerType == "spectator"){
+                    for(var i = 0; i < p1; i++)
+                        table += "<img class=\"card\" src=\"imgs/" + p1Full[i] + ".gif\"/>";
+                }else
+                for(var i = 0; i < p1; i++)
+                    table += "<img class=\"card\" src=\"imgs/costas1.gif\"/>";
+
+                p2.forEach(card => {
+                    let int = playerType == "spectator" ? "" : "interactable";
+                    player += "<img class=\"card " + int + "\" onClick=\"onClickCard('"+card+"')\" src=\"imgs/" + card + ".gif\"/>";
+                });
+                $("#table").html(table);
+                $("#cards").html(player);
+            })
+
+            socket.on('CurrentTurn',function(turn){
+                if(playerType == "spectator"){
+                    if(turn == "player1")
+                        $("#turns").html("<p>Player 1's turn!</p>");
+                    else
+                        $("#turns").html("<p>Player 2's turn!</p>");
+                }else{
+                    if(turn == playerType)
+                        $("#turns").html("<p>Your turn!</p>");
+                    else
+                        $("#turns").html("<p>Opponent's turn!</p>");
+                }
+            });
+
+            socket.on('Alert', function(msg){
+                console.log(msg);
+                $("#alerts").html(msg);
+                if(msg != ""){
+                    $("#alerts").css({opacity: 0.0});
+                    $("#alerts").animate({
+                        opacity:1.0
+                    },250,function(){
+                        setTimeout(function () {
+                            $("#alerts").animate({
+                                opacity:0
+                            },250,function(){
+                                $("#alerts").html("");
+                            })
+                        }, 2500);
+                    })
+                }
+            });
+
+            function onClickCard(id){
+                console.log(id);
+                socket.emit("OnClick",id);
+            }
+
+            function startGame(){
+                $("#overlay").animate({
+                    opacity: 0
+                }, 200, function(){
+                    $("#overlay").addClass("hide");
+                });
+            }
+
+            function hideOverlay(){
+                $("#login").animate({
+                    opacity: 0
+                }, 200, function(){
+                    logged = true;
+                    $("#login").addClass("hide");
+                    $("#login").css({opacity: 1});
+                    if(!isReady){
+                        $("#fullscreen-alert").removeClass("hide");
+                        $("#fullscreen-alert").css({opacity: 0});
+                        $("#fullscreen-alert").animate({
+                            opacity: 1
+                        },200, function(){
+
+                        });
+                    }else{
+                        startGame();
+                    }
+                });
+            }
+        </script>
+    </body>
+</html>
